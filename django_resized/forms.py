@@ -15,26 +15,30 @@ except ImportError:
 
 
 DEFAULT_SIZE = getattr(settings, 'DJANGORESIZED_DEFAULT_SIZE', [1920, 1080])
+DEFAULT_QUALITY = getattr(settings, 'DJANGORESIZED_DEFAULT_QUALITY', 75)
+DEFAULT_PROGRESSIVE = getattr(settings, 'DJANGORESIZED_DEFAULT_PROGRESSIVE', True)
 
 
 class ResizedImageFieldFile(ImageField.attr_class):
-    
+
     def save(self, name, content, save=True):
         new_content = StringIO()
         content.file.seek(0)
         thumb = Image.open(content.file)
         thumb.thumbnail((
-            self.field.max_width, 
+            self.field.max_width,
             self.field.max_height
             ), Image.ANTIALIAS)
-        
+
         if self.field.use_thumbnail_aspect_ratio:
             img = Image.new("RGBA", (self.field.max_width, self.field.max_height), self.field.background_color)
             img.paste(thumb, ((self.field.max_width - thumb.size[0]) / 2, (self.field.max_height - thumb.size[1]) / 2))
         else:
             img = thumb
-        
-        img.save(new_content, format=thumb.format, **img.info)
+
+        img.save(new_content, format=thumb.format,
+                quality=self.field.quality,
+                progressive=self.field.progressive)
 
         new_content = ContentFile(new_content.getvalue())
 
@@ -42,7 +46,7 @@ class ResizedImageFieldFile(ImageField.attr_class):
 
 
 class ResizedImageField(ImageField):
-    
+
     attr_class = ResizedImageFieldFile
 
     def __init__(self, verbose_name=None, name=None, **kwargs):
@@ -50,4 +54,6 @@ class ResizedImageField(ImageField):
         self.max_height = kwargs.pop('max_height', DEFAULT_SIZE[1])
         self.use_thumbnail_aspect_ratio = kwargs.pop('use_thumbnail_aspect_ratio', False)
         self.background_color = kwargs.pop('background_color', (255, 255, 255, 0))
-        super(ResizedImageField, self).__init__(verbose_name, name, **kwargs) 
+        self.quality = kwargs.pop('quality', DEFAULT_QUALITY)
+        self.progressive = kwargs.pop('progressive', DEFAULT_PROGRESSIVE)
+        super(ResizedImageField, self).__init__(verbose_name, name, **kwargs)
