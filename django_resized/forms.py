@@ -36,9 +36,13 @@ class ResizedImageFieldFile(ImageField.attr_class):
         else:
             img = thumb
 
-        img.save(new_content, format=thumb.format,
-                quality=self.field.quality,
-                progressive=self.field.progressive)
+        if self.field.progressive:
+            img.save(new_content, format=thumb.format,
+                    quality=self.field.quality,
+                    progressive=1)
+        else:
+            img.save(new_content, format=thumb.format,
+                    quality=self.field.quality)
 
         new_content = ContentFile(new_content.getvalue())
 
